@@ -17,8 +17,8 @@ class Game(object):
     def __init__(self, home_team, away_team):
         self.home_team = home_team
         self.away_team = away_team
-        self.home_lineup = models.Lineup(home_team)
-        self.away_lineup = models.Lineup(away_team)
+        self.home_lineup = models.Lineup(home_team, designated_hitter=True)
+        self.away_lineup = models.Lineup(away_team, designated_hitter=True)
 
         self.outs = 0
         self.strikes = 0
@@ -180,7 +180,6 @@ class Game(object):
         if rng < avg_prob:
             return True
         return False
-
 
     def simulate_plate_appearance(self, batter, pitcher):
         pitcher_probability = self.get_pitcher_probabilities(pitcher)

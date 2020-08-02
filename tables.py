@@ -34,7 +34,7 @@ class SqlLite(object):
         self.database_name = database_filename
         self.connection = sqlite3.connect(database_filename)
         self.cursor = self.connection.cursor()
-    
+
     def query(self, cmd):
         return self.cursor.execute(cmd)
 
@@ -61,7 +61,7 @@ class Table(object):
     def all(self):
         result = sql.query("SELECT * FROM '{}';".format(self.table_name))
         return self._create_result_dict(result)
-    
+
     def filter(self, **kwargs):
         filter_args = []
         for key, val in kwargs.items():
@@ -75,20 +75,19 @@ class Table(object):
         )
         result = sql.query(query)
         return self._create_result_dict(result)
-    
+
     def _get_key_and_operator(self, key):
         if '__' in key:
             tokens = key.split('__')
             return tokens[0], tokens[1]
         return key, '='
-    
+
     def _get_value(self, value):
         if isinstance(value, (set, list, )):
             return '({})'.format(', '.join("'{}'".format(x) for x in value))
         return "'{}'".format(value)
-    
+
     def _create_result_dict(self, result):
-        columns = self.columns
         all_result = []
         for row in result:
             row_dict = {}
@@ -96,7 +95,7 @@ class Table(object):
                 row_dict[column_name] = row[idx]
             all_result.append(self.RowClass(row_dict))
         return all_result
-    
+
     def _get_columns(self):
         result = sql.query("""
             SELECT * FROM '{}';
