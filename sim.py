@@ -3,37 +3,6 @@ import models
 import random
 import time
 
-"""
-allstarfull
-appearances
-awardsmanagers
-awardsplayers
-awardssharemanagers
-awardsshareplayers
-batting
-battingpost
-collegeplaying
-divisions
-fielding
-fieldingof
-fieldingofsplit
-fieldingpost
-halloffame
-homegames
-leagues
-managers
-managershalf
-parks
-people
-pitching
-pitchingpost
-salaries
-schools
-seriespost
-teams
-teamsfranchises
-teamshalf
-"""
 
 FIRST_BASE = 0
 SECOND_BASE = 1
@@ -141,10 +110,10 @@ class Game(object):
     def hit(self, batter, pitcher):
         batting_stats = batter.get_batting_stats()[0]
         probabilities = [
-            (float(batting_stats.singles) / batting_stats.at_bats, FIRST_BASE),
-            (float(batting_stats.doubles) / batting_stats.at_bats, SECOND_BASE),
-            (float(batting_stats.triples) / batting_stats.at_bats, THIRD_BASE),
-            (float(batting_stats.home_runs) / batting_stats.at_bats, HOME_RUN),
+            (float(batting_stats.singles) / batting_stats.hits, FIRST_BASE),
+            (float(batting_stats.doubles) / batting_stats.hits, SECOND_BASE),
+            (float(batting_stats.triples) / batting_stats.hits, THIRD_BASE),
+            (float(batting_stats.home_runs) / batting_stats.hits, HOME_RUN),
         ]
         rng = random.random()
         total_pct = 0
