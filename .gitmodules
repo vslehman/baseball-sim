@@ -1,0 +1,3 @@
+[submodule "lahman-baseball-mysql"]
+	path = lahman-baseball-mysql
+	url = https://github.com/WebucatorTraining/lahman-baseball-mysql/

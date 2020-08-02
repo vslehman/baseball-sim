@@ -39,7 +39,7 @@ class SqlLite(object):
         return self.cursor.execute(cmd)
 
 
-sql = SqlLite('data/db.sqlite')
+sql = SqlLite('lahman-baseball-mysql/lahmansbaseballdb.sqlite')
 
 
 class QueryRow(object):
