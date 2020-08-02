@@ -9,14 +9,18 @@ SECOND_BASE = 1
 THIRD_BASE = 2
 HOME_RUN = 3
 
-DISPLAY_TIME_STEP = 0.5
+FATIGUE_LEVEL_1 = 0
+FATIGUE_LEVEL_2 = 1
+FATIGUE_LEVEL_3 = 2
 
 
 class Game(object):
 
-    def __init__(self, home_team, away_team):
+    def __init__(self, home_team, away_team, time_step):
         self.home_team = home_team
         self.away_team = away_team
+        self.time_step = time_step
+
         self.home_lineup = models.Lineup(home_team, designated_hitter=True)
         self.away_lineup = models.Lineup(away_team, designated_hitter=True)
 
@@ -35,6 +39,7 @@ class Game(object):
                 'walks': 0,
                 'errors': 0,
                 'box_score': [],
+                'batters_faced': 0,
             },
             'away': {
                 'runs': 0,
@@ -43,6 +48,7 @@ class Game(object):
                 'walks': 0,
                 'errors': 0,
                 'box_score': [{'runs': 0, 'hits': 0, 'errors': 0, }, ],
+                'batters_faced': 0,
             },
         }
         self.stats['top'] = self.stats['away']
@@ -217,18 +223,44 @@ class Game(object):
         batting_idx = self.stats[self.inning_half]['batting_idx']
         self.stats[self.inning_half]['batting_idx'] = (batting_idx + 1) % 9
 
+    def get_current_pitcher(self):
+        return self.home_pitcher if self.inning_half == 'top' else self.away_pitcher
+
+    def get_batting_lineup(self):
+        return self.away_lineup if self.inning_half == 'top' else self.home_lineup
+
+    def get_defensive_team(self):
+        return self.stats['home'] if self.inning_half == 'top' else self.stats['away']
+
+    def get_offensive_team(self):
+        return self.stats['away'] if self.inning_half == 'top' else self.stats['home']
+
+    def get_offensive_stats(self):
+        return self.stats['away'] if self.inning_half == 'top' else self.stats['home']
+
+    def get_defensive_stats(self):
+        return self.stats['home'] if self.inning_half == 'top' else self.stats['away']
+
+    def get_current_batter(self):
+        offensive_stats = self.get_offensive_stats()
+        batting_idx = offensive_stats['batting_idx']
+        batting_lineup = self.get_batting_lineup()
+        return batting_lineup.batting_order[batting_idx]
+
     def simulate_inning_half(self):
         print('\n-- {} of Inning {} --\n'.format(self.inning_half.title(), self.inning))
-        pitcher = self.home_pitcher if self.inning_half == 'top' else self.away_pitcher
-        lineup = self.away_lineup if self.inning_half == 'top' else self.home_lineup
+
+        pitcher = self.get_current_pitcher()
+        defensive_stats = self.get_defensive_stats()
+
         while self.outs < 3:
-            batting_idx = self.stats[self.inning_half]['batting_idx']
-            hitter = lineup.batting_order[batting_idx]
+            batter = self.get_current_batter()
             self.simulate_plate_appearance(
-                hitter,
+                batter,
                 pitcher,
             )
-            time.sleep(DISPLAY_TIME_STEP)
+            defensive_stats['batters_faced'] += 1
+            time.sleep(self.time_step)
 
     def simulate(self):
         self.start_game()
@@ -287,10 +319,19 @@ class Game(object):
         self._print_team_line(self.away_team.teamID, 'away')
         self._print_team_line(self.home_team.teamID, 'home')
 
+    def get_fatigue_level(self, pitcher):
+        stats = pitcher.get_pitching_stats()[0]
+        avg_batters_faced = float(stats.batters_faced) / stats.games
 
-def sim_game(home_team, away_team):
-    game = Game(home_team, away_team)
-    game.simulate()
+        team_type = 'home' if pitcher is self.home_pitcher else 'away'
+        batters_faced = self.stats[team_type]['batters_faced']
+
+        if batters_faced < avg_batters_faced - 3:
+            return FATIGUE_LEVEL_1
+        elif batters_faced > avg_batters_faced + 3:
+            return FATIGUE_LEVEL_3
+        else:
+            return FATIGUE_LEVEL_2
 
 
 if __name__ == '__main__':
@@ -311,16 +352,23 @@ if __name__ == '__main__':
         'away_year',
         action='store',
     )
+    parser.add_argument(
+        '--time_step',
+        action='store',
+        type=float,
+        default=0.5
+    )
     args = parser.parse_args()
 
-    home = models.Teams.filter(
+    home_team = models.Teams.filter(
         yearId=args.home_year,
         teamId=args.home,
     )[0]
 
-    away = models.Teams.filter(
+    away_team = models.Teams.filter(
         yearId=args.away_year,
         teamId=args.away,
     )[0]
 
-    sim_game(home, away)
+    game = Game(home_team, away_team, args.time_step)
+    game.simulate()

@@ -134,6 +134,15 @@ class Team(QueryRow):
         else:
             return player[0]
 
+    def get_players_by_position(self, position):
+        position_players = []
+        for player in self.get_players():
+            stats = player.get_fielding_stats()
+            for stat in stats:
+                if stat.position == position:
+                    position_players.append(player)
+        return position_players
+
     def get_starters(self):
         starts = defaultdict(list)
         for player in self.get_players():
