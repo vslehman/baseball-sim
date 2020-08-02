@@ -1,4 +1,19 @@
+from collections import defaultdict
+
 from tables import Table, QueryRow
+
+
+POSITIONS = [
+    'P',
+    'C',
+    '1B',
+    '2B',
+    '3B',
+    'SS',
+    'LF',
+    'CF',
+    'RF',
+]
 
 
 class Player(QueryRow):
@@ -21,13 +36,19 @@ class Player(QueryRow):
         pitching = Table('appearances')
         return pitching.filter(playerID=self.playerID, team_ID=self.teamID)
     
+    @property
+    def name(self):
+        return '{} {}'.format(self.nameFirst, self.nameLast)
+    
     def __str__(self):
-        return '{} {} {}/{}'.format(
-            self.nameFirst,
-            self.nameLast,
+        return '{} {}/{}'.format(
+            self.name,
             self.bats,
             self.throws,
         )
+    
+    def __repr__(self):
+        return self.__str__()
 
 
 Players = Table('people', Player)
@@ -54,11 +75,14 @@ class BattingStats(QueryRow):
         return float(self.total_bases) / self.at_bats
 
     @property
-    def total_bases(self):
+    def singles(self):
         extra_base_hits = self.doubles + self.triples + self.home_runs
-        singles = self.hits - extra_base_hits
+        return self.hits - extra_base_hits
+
+    @property
+    def total_bases(self):
         return sum([
-            singles,
+            self.singles,
             2 * self.doubles,
             3 * self.triples,
             4 * self.home_runs,
@@ -107,6 +131,28 @@ class Team(QueryRow):
         else:
             return player[0]
     
+    def get_starters(self):
+        starts = defaultdict(list)
+        for player in self.get_players():
+            stats = player.get_fielding_stats()
+            for stat in stats:
+                starts[stat.position].append((stat.games_started, player))
+        starters = {}
+        infield = [
+            'P',
+            'C',
+            '1B',
+            '2B',
+            '3B',
+            'SS',
+        ]
+        for position in infield:
+            starters[position] = sorted(starts[position], reverse=True)[0][1]
+        outfielders = sorted(starts['OF'], reverse=True)[:3]
+        for position in ['LF', 'CF', 'RF', ]:
+            starters[position] = outfielders.pop()[1]
+        return starters
+    
     def _get_players(self, player_ids, **kwargs):
         players_result = Players.filter(playerID__in=player_ids, **kwargs)
         for player in players_result:
@@ -118,3 +164,30 @@ class Team(QueryRow):
 
 
 Teams = Table('teams', Team)
+
+
+class Lineup(object):
+
+    def __init__(self, team):
+        self.team = team
+        self.lineup = team.get_starters()
+        self.players = self.lineup.values()
+        self.batting_order = []
+    
+        self.add_players(lambda x: x.get_batting_stats()[0].stolen_bases, 2)
+        self.add_players(lambda x: x.get_batting_stats()[0].avg, 1)
+        self.add_players(lambda x: x.get_batting_stats()[0].slugging, 1)
+        self.add_players(lambda x: x.get_batting_stats()[0].avg, 5)
+    
+    def add_players(self, sort_key, num):
+        sorted_players = sorted(self.players, key=sort_key, reverse=True)
+        for i in range(num):
+            player = sorted_players.pop(0)
+            self.batting_order.append(player)
+            self.players.remove(player)
+
+    def __str__(self):
+        lineup = []
+        for idx, player in enumerate(self.batting_order, 1):
+            lineup.append('{}. {}'.format(idx, player))
+        return '\n'.join(lineup)

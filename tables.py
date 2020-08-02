@@ -19,11 +19,12 @@ ATTRIBUTE_MAP = {
     '2B': 'doubles',
     'ER': 'earned_runs',
     'SV': 'saves',
-    'SO': 'strike_outs',
+    'SO': 'strikeouts',
     'SB': 'stolen_bases',
     'SF': 'sac_flies',
     'RBI': 'rbi',
     'POS': 'position',
+    'BFP': 'batters_faced',
 }
 
 
