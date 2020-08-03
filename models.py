@@ -53,6 +53,9 @@ class Player(QueryRow):
     def __repr__(self):
         return self.__str__()
 
+    def __lt__(self, other):
+        return self.name < other.name
+
 
 Players = Table('people', Player)
 
@@ -192,7 +195,7 @@ class Lineup(object):
     def __init__(self, team, designated_hitter=False):
         self.team = team
         self.lineup = team.get_starters()
-        self.players = self.lineup.values()
+        self.players = list(self.lineup.values())
         self.batting_order = []
 
         pitcher = self.lineup.get('P')
