@@ -14,12 +14,23 @@ FATIGUE_LEVEL_2 = 1
 FATIGUE_LEVEL_3 = 2
 
 
+class ConsoleListener(object):
+
+    def on_event(self, event):
+        print(event)
+
+
 class Game(object):
 
-    def __init__(self, home_team, away_team, time_step):
+    def __init__(self, home_team, away_team, time_step, listener=None):
         self.home_team = home_team
         self.away_team = away_team
         self.time_step = time_step
+
+        if listener:
+            self.listener = listener
+        else:
+            self.listener = ConsoleListener()
 
         self.home_lineup = models.Lineup(home_team, designated_hitter=True)
         self.away_lineup = models.Lineup(away_team, designated_hitter=True)
@@ -58,6 +69,9 @@ class Game(object):
         self.inning_half = 'top'
 
         self.bases = [None, None, None]
+
+    def publish_event(self, event):
+        self.listener.on_event(event)
 
     def start_game(self):
         self.outs = 0
@@ -110,11 +124,11 @@ class Game(object):
         self.advance_runners(1, is_walk=True)
         self.bases[FIRST_BASE] = batter
         self.stats[self.inning_half]['walks'] += 1
-        print('{} walks {}'.format(pitcher.name, batter.name))
+        self.publish_event('{} walks {}'.format(pitcher.name, batter.name))
 
     def strikeout(self, batter, pitcher):
         self.outs += 1
-        print('{} strikes-out {}'.format(pitcher.name, batter.name))
+        self.publish_event('{} strikes-out {}'.format(pitcher.name, batter.name))
 
     def hit(self, batter, pitcher):
         batting_stats = batter.get_batting_stats()[0]
@@ -152,12 +166,12 @@ class Game(object):
             THIRD_BASE: 'triples',
             HOME_RUN: 'hits a home-run'
         }
-        print('{} {} off {}'.format(batter.name, hit_verbs[hit_type], pitcher.name))
+        self.publish_event('{} {} off {}'.format(batter.name, hit_verbs[hit_type], pitcher.name))
 
     def out(self, batter, pitcher):
         self.outs += 1
         hit_type = random.choice(['grounds-out', 'flies-out', ])
-        print('{} {}'.format(batter.name, hit_type))
+        self.publish_event('{} {}'.format(batter.name, hit_type))
 
     def score_run(self, player):
         self.stats[self.inning_half]['runs'] += 1
@@ -210,10 +224,10 @@ class Game(object):
         outcome(batter, pitcher)
         if self.runs_per_outcome:
             if self.runs_per_outcome == 1:
-                print('1 run scores')
+                self.publish_event('1 run scores')
             else:
-                print('{} runs score'.format(self.runs_per_outcome))
-            print('{} {} - {} {}'.format(
+                self.publish_event('{} runs score'.format(self.runs_per_outcome))
+            self.publish_event('{} {} - {} {}'.format(
                 self.away_team.teamID,
                 self.stats['away']['runs'],
                 self.home_team.teamID,
@@ -248,7 +262,7 @@ class Game(object):
         return batting_lineup.batting_order[batting_idx]
 
     def simulate_inning_half(self):
-        print('\n-- {} of Inning {} --\n'.format(self.inning_half.title(), self.inning))
+        self.publish_event('\n-- {} of Inning {} --\n'.format(self.inning_half.title(), self.inning))
 
         pitcher = self.get_current_pitcher()
         defensive_stats = self.get_defensive_stats()
@@ -301,13 +315,13 @@ class Game(object):
             total_hits,
             total_errors,
         )
-        print(team_line)
+        self.publish_event(team_line)
 
     def print_box_score(self):
         home_score = self.stats['home']['runs']
         away_score = self.stats['away']['runs']
         winning_team = self.home_team.name if home_score > away_score else self.away_team.name
-        print('\n{} win!\n'.format(winning_team))
+        self.publish_event('\n{} win!\n'.format(winning_team))
 
         num_innings = len(self.stats['away']['box_score']) + 1
         box_score_header = 'Team    1    2    3    4    5    6    7    8    9'
@@ -315,7 +329,7 @@ class Game(object):
             for i in range(10, num_innings):
                 box_score_header += '{:>5}'.format(i)
         box_score_header += '    R    H    E'
-        print(box_score_header)
+        self.publish_event(box_score_header)
         self._print_team_line(self.away_team.teamID, 'away')
         self._print_team_line(self.home_team.teamID, 'home')
 
