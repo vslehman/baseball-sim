@@ -39,7 +39,8 @@ class SqlLite(object):
         return self.cursor.execute(cmd)
 
 
-sql = SqlLite('lahman-baseball-mysql/lahmansbaseballdb.sqlite')
+def sql():
+    return SqlLite('lahman-baseball-mysql/lahmansbaseballdb.sqlite')
 
 
 class QueryRow(object):
@@ -59,8 +60,15 @@ class Table(object):
         self.columns = self._get_columns()
 
     def all(self):
-        result = sql.query("SELECT * FROM '{}';".format(self.table_name))
+        result = sql().query("SELECT * FROM '{}';".format(self.table_name))
         return self._create_result_dict(result)
+
+    def get(self, **kwargs):
+        result = self.filter(**kwargs)
+        if len(result) == 1:
+            return result[0]
+        else:
+            raise RuntimeError('Could not get record')
 
     def filter(self, **kwargs):
         filter_args = []
@@ -73,7 +81,7 @@ class Table(object):
             self.table_name,
             ' AND '.join(filter_args),
         )
-        result = sql.query(query)
+        result = sql().query(query)
         return self._create_result_dict(result)
 
     def _get_key_and_operator(self, key):
@@ -97,7 +105,7 @@ class Table(object):
         return all_result
 
     def _get_columns(self):
-        result = sql.query("""
+        result = sql().query("""
             SELECT * FROM '{}';
         """.format(self.table_name))
         columns = []
