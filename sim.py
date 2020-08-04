@@ -19,7 +19,8 @@ FATIGUE_LEVEL_3 = 2
 class ConsoleListener(object):
 
     def on_event(self, event):
-        print(event)
+        if isinstance(event, str):
+            print(event)
 
 
 class Game(object):
