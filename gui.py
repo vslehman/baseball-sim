@@ -4,6 +4,7 @@ from threading import Thread
 
 from PIL import ImageTk, Image
 
+import events
 import models
 
 from sim import Game
@@ -92,7 +93,7 @@ class FieldView(object):
         self.field_label = tk.Label(canvas)
         self.field_image = ImageTk.PhotoImage(Image.open('materials/field.png'))
         self.field_label['image'] = self.field_image
-        self.field_label.grid(column=3, row=0, columnspan=20, rowspan=10)
+        self.field_label.grid(column=3, row=0, columnspan=20, rowspan=8)
 
 
 class PlayByPlayView(object):
@@ -102,11 +103,57 @@ class PlayByPlayView(object):
         self.console_text.grid(column=0, row=6, columnspan=2, rowspan=5)
         self.console_text.config(state=tk.DISABLED)
 
+        self.inning = tk.StringVar()
+        self.inning_label = tk.Label(canvas)
+        self.inning_label['textvariable'] = self.inning
+        self.inning_label.grid(column=3, row=8)
+
+        self.outs = tk.StringVar()
+        self.outs_label = tk.Label(canvas)
+        self.outs_label['textvariable'] = self.outs
+        self.outs_label.grid(column=5, row=8)
+
+        self.score = tk.StringVar()
+        self.score_label = tk.Label(canvas)
+        self.score_label['textvariable'] = self.score
+        self.score_label.grid(column=10, row=8)
+
+    def get_inning_suffix(self, inning_num):
+        SUFFIXES = ['', 'st', 'nd', 'rd', ]
+        if inning_num < len(SUFFIXES):
+            return SUFFIXES[inning_num]
+        else:
+            return 'th'
+
     def on_event(self, event):
-        self.console_text.config(state=tk.NORMAL)
-        self.console_text.insert(tk.END, event + '\n')
-        self.console_text.see(tk.END)
-        self.console_text.config(state=tk.DISABLED)
+        if isinstance(event, events.InningEvent):
+            self.inning.set(
+                '{}{} {}'.format(
+                    event.inning_num,
+                    self.get_inning_suffix(event.inning_num),
+                    event.inning_half.title(),
+                )
+            )
+        elif isinstance(event, events.OutEvent):
+            if event.num_outs == 1:
+                self.outs.set('1 out')
+            else:
+                self.outs.set('{} outs'.format(event.num_outs))
+        elif isinstance(event, events.ScoreEvent):
+            self.score.set(
+                '{} {} - {} {}'.format(
+                    event.away_team,
+                    event.away_score,
+                    event.home_team,
+                    event.home_score,
+                )
+            )
+        else:
+            event_msg = event
+            self.console_text.config(state=tk.NORMAL)
+            self.console_text.insert(tk.END, event_msg + '\n')
+            self.console_text.see(tk.END)
+            self.console_text.config(state=tk.DISABLED)
 
     def clear_console(self):
         self.console_text.config(state=tk.NORMAL)

@@ -1,7 +1,9 @@
 import argparse
-import models
 import random
 import time
+
+import events
+import models
 
 
 FIRST_BASE = 0
@@ -172,6 +174,7 @@ class Game(object):
         self.outs += 1
         hit_type = random.choice(['grounds-out', 'flies-out', ])
         self.publish_event('{} {}'.format(batter.name, hit_type))
+        self.publish_event(events.OutEvent(self.outs))
 
     def score_run(self, player):
         self.stats[self.inning_half]['runs'] += 1
@@ -233,6 +236,14 @@ class Game(object):
                 self.home_team.teamID,
                 self.stats['home']['runs'],
             ))
+            self.publish_event(
+                events.ScoreEvent(
+                    self.away_team.teamID,
+                    self.stats['away']['runs'],
+                    self.home_team.teamID,
+                    self.stats['home']['runs'],
+                )
+            )
 
         batting_idx = self.stats[self.inning_half]['batting_idx']
         self.stats[self.inning_half]['batting_idx'] = (batting_idx + 1) % 9
@@ -263,6 +274,16 @@ class Game(object):
 
     def simulate_inning_half(self):
         self.publish_event('\n-- {} of Inning {} --\n'.format(self.inning_half.title(), self.inning))
+        self.publish_event(events.InningEvent(self.inning_half, self.inning))
+        self.publish_event(events.OutEvent(self.outs))
+        self.publish_event(
+            events.ScoreEvent(
+                self.away_team.teamID,
+                self.stats['away']['runs'],
+                self.home_team.teamID,
+                self.stats['home']['runs'],
+            )
+        )
 
         pitcher = self.get_current_pitcher()
         defensive_stats = self.get_defensive_stats()
